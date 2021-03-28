@@ -52,12 +52,17 @@ college$Rate <- college$Accept / college$Apps
 college <- subset(college, select = -Accept)
 # Remove the college name column
 college <- subset(college, select = -College)
-#To check whether the data is actually modified
+# Change variable Private to PrivateYes
+college$PrivateYes[college$Private=="Yes"] <- 1
+college$PrivateYes[college$Private!="Yes"] <- 0
+# Remove the Private column
+college <- subset(college, select = -Private)
+# To check whether the data is actually modified
 head(college)
 dim(college)
 ```
 
-From the infromation provided, I learn that the number of student enrolled in the colleges are usually not easily to be collected, the column stored this information is deleted from our data set. Also, since the acceptance rate is a more appropriate varaible than the numebr of acceptance, a new collumn named *"Rate"* is created using the existing variables acceptance *"Accept"* to be divided by the number of applications per academic year *"Apps"*. After adding this new variable to our data, since it is perfectly correlated to the variable *"Accept"*, the old and incomparable variable *"Accept"* is deleted. After arranging the variables, I got the data set for the analysis in this project, which has $777$ observations and $18$ variables, and among them only the variable *"Private"* is a categorical variable with two levels. Since the goal of this project is to predict the number of applications received during an academic year, the variable *"Apps"* would be the response variable in this project, and all other variables except the names of universities would be the exploratory variables. For the convenience of the analysis, I removed the column storing the college names.
+From the infromation provided, I learn that the number of student enrolled in the colleges are usually not easily to be collected, the column stored this information is deleted from our data set. Also, since the acceptance rate is a more appropriate varaible than the numebr of acceptance, a new collumn named *"Rate"* is created using the existing variables acceptance *"Accept"* to be divided by the number of applications per academic year *"Apps"*. After adding this new variable to our data, since it is perfectly correlated to the variable *"Accept"*, the old and incomparable variable *"Accept"* is deleted. After arranging the variables, I got the data set for the analysis in this project, which has $777$ observations and $18$ variables, and among them only the variable *"Private"* is a categorical variable with two levels. Since the goal of this project is to predict the number of applications received during an academic year, the variable *"Apps"* would be the response variable in this project, and all other variables except the names of universities would be the exploratory variables. For the convenience of the analysis, I removed the column storing the college names, and change the variable *"Private"* to *"PrivateYes"*, which is a variable with $1$ indicating private school and $0$ for not a private school.
 
 ## Section 2: Selection Only
 
@@ -77,16 +82,34 @@ BSSout <- regsubsets( Apps ~ ., data = college, nvmax = 16)
 
 ### Section 2.2: Best Subset Selection - Stage 2
 
-Proceeding to the second stage, I compared how well models created in the stage 1 are. Since our goal for this project is prediction, the AIC would be a good metric for comparing. 
+Proceeding to the second stage, I compared how well models created in the stage 1 are using the $R_{adj}^{2}$.
 
-```{r BSSAIC, fig.cap="AIC's for the models created from the stage 1"}
-# The AIC's for the models from the stage 1
-summary(BSSout)$cp
-# Plot the AIC's for models
-plot(BSSout, scale = "Cp")
+```{r m1adjr2, fig.cap="\\label{fig:m1adjr2}Adjusted R-squareds for the models created from the stage 1"}
+# The adjusted R-squared for the models from the stage 1
+#summary(BSSout)$adjr2
+# Plot the adjusted R-squareds for models
+plot(BSSout, scale = "adjr2")
 ```
 
-Gathering the AIC's computed from the models, the Figure \@ref(fig:BSSAIC) is created to visualize the result. Since we want a model with a smaller AIC and less variables, the model with features *"F.undergrad", "P.Undergrad", "Outside", "Room.Board", "perc.alumni", "Expend", "Grad.Rate", "rate",* and the intercept with an AIC of $7.322785$ is the best fit.
+Gathering the $R_{adj}^{2}$ computed from the models, the Figure \ref{fig:m1adjr2} is created to visualize the result. Since we want a model using less variables to explain the pattern in the data as much as possible, we prefer a model with a higher $R_{adj}^{2}$ and less variables. The model with features *"PrivateYes", "F.undergrad", "P.Undergrad", "Outstate", "Room.Board", "Terminal", "perc.alumni", "Expend", "Grad.Rate", "Rate",* and the intercept with a $R_{adj}^{2}$ of $0.7738017$ is the best fit.
+
+After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by formula \ref{eq:RSS}
+
+\begin{equation}\label{eq:RSS}
+RSS = (Y - X_{D} \hat{\beta})^{T}(Y-X_{D} \hat{\beta})
+\end{equation}
+
+As a result we get a model with coefficients as shown in the Table \ref{tab:LSLRbetas}. Hence the final regression line gotten is $\widehat{Apps} = 1994.50 - 353.54 PrivateYes + 0.66 F.Undergrad - 0.16 P.Undergrad + 0.08 Outstate + 0.24 Room.Board - 9.89 Terminal - 20.15 perc.alumni+ 0.07 Expand + 19.05 Grad.Rate - 4812.59 Rate$, which has an $R_{adj}^{2}$ of $0.7738017$
+
+```{r LSLRbetas}
+# Fit the LSLR models with the features we selected
+LSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board + Terminal + perc.alumni + Expend + Grad.Rate + Rate, data = college)
+# Output the estimates for the LSLR model
+knitr::kable(summary(LSLR)$coefficients,
+             caption = "\\label{tab:LSLRbetas}The estimates for the LSLR model")
+```
+
+
 
 ## Section 3: Shrinkage Only
 
