@@ -3,6 +3,7 @@ title: "STA363SecAProj2"
 author: "Rickey Huang"
 date: "3/16/2021"
 output: pdf_document
+extra_dependencies: ["float"]
 ---
 
 ```{r setup, include=FALSE}
@@ -22,10 +23,17 @@ college <- read.csv("~/Desktop/2021Spring/STA-363/Projects/Project 2/STA363Porje
 
 In this section, the data set is explored and cleaned in order to improve the quality of the data for a good prediction.
 
-```{r}
+```{r, message=FALSE}
 # Every package required in the project is libraried here
 # Package for the BSS
 library(leaps)
+# Packages for Ridge Regression
+# Need to run the next line if the package glmnet is not installed
+#install.packages("glmnet")
+library(Matrix)
+library(glmnet)
+# For table output
+library(knitr)
 ```
 
 ### Section 1.1: Cleaning the missing data
@@ -93,29 +101,121 @@ plot(BSSout, scale = "adjr2")
 
 Gathering the $R_{adj}^{2}$ computed from the models, the Figure \ref{fig:m1adjr2} is created to visualize the result. Since we want a model using less variables to explain the pattern in the data as much as possible, we prefer a model with a higher $R_{adj}^{2}$ and less variables. The model with features *"PrivateYes", "F.undergrad", "P.Undergrad", "Outstate", "Room.Board", "Terminal", "perc.alumni", "Expend", "Grad.Rate", "Rate",* and the intercept with a $R_{adj}^{2}$ of $0.7738017$ is the best fit.
 
-After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by formula \ref{eq:RSS}
+After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by formula \ref{eq:RSS}, where $Y$ is the vector storing all Apps for each row, and $X_{D}$ is the design matrix.
 
 \begin{equation}\label{eq:RSS}
-RSS = (Y - X_{D} \hat{\beta})^{T}(Y-X_{D} \hat{\beta})
+RSS = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta})
 \end{equation}
 
-As a result we get a model with coefficients as shown in the Table \ref{tab:LSLRbetas}. Hence the final regression line gotten is $\widehat{Apps} = 1994.50 - 353.54 PrivateYes + 0.66 F.Undergrad - 0.16 P.Undergrad + 0.08 Outstate + 0.24 Room.Board - 9.89 Terminal - 20.15 perc.alumni+ 0.07 Expand + 19.05 Grad.Rate - 4812.59 Rate$, which has an $R_{adj}^{2}$ of $0.7738017$
+As a result we get a model with coefficients as shown in the Table \ref{tab:LSLRbetas}. Hence the final regression line gotten is $\widehat{Apps} = 1994.50 - 353.54 PrivateYes + 0.66 F.Undergrad - 0.16 P.Undergrad + 0.08 Outstate + 0.24 Room.Board - 9.89 Terminal - 20.15 perc.alumni+ 0.07 Expand + 19.05 Grad.Rate - 4812.59 Rate$, which has an $R_{adj}^{2}$ of $0.7738017$.
 
 ```{r LSLRbetas}
 # Fit the LSLR models with the features we selected
 LSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board + Terminal + perc.alumni + Expend + Grad.Rate + Rate, data = college)
 # Output the estimates for the LSLR model
-knitr::kable(summary(LSLR)$coefficients,
-             caption = "\\label{tab:LSLRbetas}The estimates for the LSLR model")
+knitr::kable(summary(LSLR)$coefficients, caption = "\\label{tab:LSLRbetas}The estimates for the LSLR model")
 ```
 
+```{r}
+# Implement the k-fold technique
+# Create two null matrices to store the residuals of the LSLR model
+residualskfold <- matrix(NA, nrow=777, ncol=1)
+# Set up k
+# Choose 21, since 21 is a factor of the number of rows 777
+k <- 21
+#set random seed
+set.seed(100)
+#create folds
+folds <- sample(rep(1:k, 37),777,replace = FALSE)
+#for loop
+for(i in 1:k){
+  #find the rows in fold i
+  infold <- which(folds==i)
+  #create a kfoldCV training set
+  kfoldCVTraining <- college[-infold,]
+  #create a kfoldCV test set
+  kfoldCVTest <- college[infold,]
+  #train the LSLR model
+  kfoldLSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board + Terminal + perc.alumni + Expend + Grad.Rate + Rate, data=kfoldCVTraining)
+  #predict on the kfoldCV test data using the LSLR model
+  pred <- predict(kfoldLSLR, newdata=kfoldCVTest)
+  #compute the residuals for the LSLR model and store then 
+  residualskfold[infold] <- kfoldCVTest$Apps - pred
+}
+#calculate the RSS of the LSLR model
+RSSkfold <- t(residualskfold)%*%(residualskfold)
+#calculate the RMSE of the LSLR model
+RMSEkfold <- sqrt(RSSkfold/777)
+#RMSEkfold
+```
 
+In order to further evaluating the model chosen, the $21$-fold cross validation tachnique is use to assess the performance of the LSLR model in prediction by dividing our data into $21$ folds of training data and test data. The reason that the k-fold cross validation is chosen is that the data we use is a comparatively large data set, if we use the LOOCV, the cross validation process will be computationally expensive. Hence, the k-fold could not result a low accuracy or a high variance variation, and it also compute the result faster than the LOOCV technique. As a result of the cross validation for the model, we compute the test RMSE for the LSLR model which is $1881.8$. From this number, it is clear to see that the test RMSE is large, which means the prediction from the LSLR is relatively far from the real data points we have.
 
 ## Section 3: Shrinkage Only
+
+### Section 3.1: Reasons for doing the shrinkage
+
+```{r}
+#cor(college)
+```
+
+As the correlation table for all the variables in the data set provided is created, there are many variables are strongly correlated to each other. For example, the correlation between *"Top10perc"* and *"Top25perc"* is $0.8919950$, and the correlation between *"terminal"* and *"PhD* is $0.84958703$. These strong correlated data would in turn result in a high coefficients estimates and a high standard error in the model fitted. Hence the shrinkage technique is appropriate to be used here to solve this problem.
+
+### Section 3.2 Ridge Regression
+
+#### Section 3.2.1 Details about the Technique
+
+The shrinkage technique I use here for the second model is the Ridge Regression. Improved from the LSLR model, the metric RSS plus a penalty term is minimized here to choose better estimates. To be specific, the metric we are minimizing here is expanded in the formula \ref{eq:RidgeMetric}, where the $\lambda$ is the tuning parameter and the $\lambda \hat{\beta}^{T} \hat{\beta}$ is the penalty term. By adding this penalty term, we can shrink the estimates and in turn lower the standard error of our model.
+
+\begin{equation}\label{eq:RidgeMetric}
+RSS + \lambda \hat{\beta}^{T} \hat{\beta} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta}) + \lambda \hat{\beta}^{T} \hat{\beta}
+\end{equation}
+
+#### Section 3.2.2 Fitting the Ridge Model
+
+In order to get an appropriate Ridge model, tuning parameters are chosen from 0 to 1000 by 0.5, and the models fitted with these parameters are trained using the $21$-fold cross validation method, since this is a comparatively large data. The test MSE's are computed and plotted in the Figure \ref{ridgeCV}. From the Figure \ref{ridgeCV}, we can see that the test MSE keep increasing as the tuning parameter approaching $1000$, so the range for the tuning parameter our client suggested is enough to choose a reasonable $\lambda$. Since the test MSE explains how far our estimation is away from the real data, we would like to choose $\lambda$ with the lowest test MSE. The result we get from the cross validation is that the tuning parameter $\lambda = 73.5$ minimizes the test MSE which is $3567052$. 
+
+```{r ridgeCV, fig.cap="\\label{ridgeCV} test MSE vs. log(Lamba) for the Ridge model"}
+# Create the design matrix, using all variables we have
+XD <- model.matrix(Apps ~ ., data = college)
+# Fit the initial Ridge Regression model
+InitialRidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, standardize = TRUE)
+# Doing the cross validation to choose the best tuning parameter
+set.seed(100)
+# As requested by the client, we want try the tuning parameters from 0 to 1000 by 0.5
+cv.ridge <- cv.glmnet(XD[, -1], college$Apps, alpha = 0, nfold = 21, lambda = seq(from = 0, to = 1000, by = 0.5))
+# Plot the result
+plot(cv.ridge)
+# Return the smallest test MSE and the corresponding Lambda
+#min(cv.ridge$cvm)
+#cv.ridge$lambda.min
+# Compute the RMSE
+#sqrt(cv.ridge$cvm[1])
+#sqrt(cv.ridge$cvm[which.min(cv.ridge$cvm)])
+#(sqrt(cv.ridge$cvm[1]) - sqrt(cv.ridge$cvm[which.min(cv.ridge$cvm)])) / sqrt(cv.ridge$cvm[1])
+# Create the final Ridge model
+RidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, lambda = cv.ridge$lambda.min)
+```
+
+With this parameter, the corresponding penalty term is add to the RSS to create the metric used to minimized. In this way, the coefficients for the final Ridge model are shown in the table \ref{tab:Ridgebetas} with the coefficients for the full model without shrinkage placed side by side. Hence, the Ridge model can be written out as $\widehat{Apps} = 2053.32 + 8.48 Top10perc - 2.39 Top25perc - 449.81 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.17 Books - 0.11 Personal - 0.80 PhD - 7.98 Terminal + 6.04 S.F.Ratio - 21.59 perc.alumni + 0.07 Expand + 18.63 Grad.Rate - 4562.06 Rate$. Taking the square root of the test MSE, the test RMSE for the Ridge model is compated, which is $1888.664$. Comparing to the test RMSE for the full model which is $2014.712$, the Ridge model improves $6.26\%$ from the full model. The coefficients for the full model and the Ridge model are shown in the table \ref{Ridgebetas}. However, comparing to the LSLR model, which has a test RMSE of $1881.8$, since both the models uses the $21$-fold cross validation, the LSLR model performs better on the prediction. Hence, until this point, the LSLR model with only selection does a better job than that the Ridge model with only shrinkage.
+
+```{r Ridgebetas}
+# Create a matrix to store the coefficients for the full and ridge model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model and the Ridge model side by side
+knitr::kable(Mat, caption = "\\label{Ridgebetas}Comparing the Coefficients: Full model vs. Ridge model")
+```
+
 
 ## Section 4: Selection and Shrinkage
 
 ## Section 5: Elastic Net
 
 ## Section 6: Conclusion
+
 
