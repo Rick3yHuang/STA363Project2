@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Abstract/ Executive Summary
 
-
+Predicting the number of applicaitons received by a university per year is important for admission officers to allocate the incoming students' demands for housing, dining, and so on, which in turn can increase the accuracy of universities' budgets in these areas. In order to predict the number of applications, many aspects about the information of the universities are considered, $16$ variables like the acceptance rate, the number of undergraduate students, the student faculty ratio and so on are used to fit a model for prediction. In this project, four estimation models are fitted, which are least-square line regression model (LSLR model), ridge regression model (Ridge model), Lasso model, and the Elastic Net model. To compare the models, the accuracy for prediction of all four models is tested using the k-fold cross validation technique. The process and steps for building the models and the detail results are shown in the body paragraphs formal report. In conclusion, the Elastic Net model is suggest to the client to do the prediction job, since it has a lowest test RMSE which is $1624.236$.
 
 ## Section 1: Data Cleaning
 
@@ -89,6 +89,9 @@ In the first stage of the BSS, all possible models containing $1$ variable, $2$ 
 # them in BSSout.
 # nvmax is set to be 16, since the full model contains 16 exploratory variables in it.
 BSSout <- regsubsets( Apps ~ ., data = college, nvmax = 16)
+# Just for checking
+#BSSout$rss
+#plot(BSSout$rss)
 ```
 
 ### Section 2.2: Best Subset Selection - Stage 2
@@ -180,7 +183,7 @@ RSS + \lambda \hat{\beta}^{T} \hat{\beta} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D}
 
 In order to get an appropriate Ridge model, tuning parameters are chosen from 0 to 1000 by 0.5, and the models fitted with these parameters are trained using the $21$-fold cross validation method, since this is a comparatively large data. The test MSE's are computed and plotted in the Figure \ref{ridgeCV}. From the Figure \ref{ridgeCV}, we can see that the test MSE keep increasing as the tuning parameter approaching $1000$, so the range for the tuning parameter our client suggested is enough to choose a reasonable $\lambda$. Since the test MSE explains how far our estimation is away from the real data, we would like to choose $\lambda$ with the lowest test MSE. The result we get from the cross validation is that the tuning parameter $\lambda = 73.5$ minimizes the test MSE which is $3567052$. 
 
-```{r ridgeCV, fig.cap="\\label{ridgeCV} test MSE vs. log(Lamba) for the Ridge model"}
+```{r ridgeCV, fig.cap="\\label{ridgeCV} test MSE vs. log(Lambda) for the Ridge model"}
 # Create the design matrix, using all variables we have
 XD <- model.matrix(Apps ~ ., data = college)
 # Doing the cross validation to choose the best tuning parameter
@@ -238,9 +241,9 @@ RSS + {\lambda}_{Lasso} {\|\hat{\beta}\|}_{1} = (Y - X_{D} \hat{\beta})^{T}(Y- X
 
 #### Section 4.2.2: Fitting the Lasso Model
 
-Like the modelling process in the ridge regression, the tuning variable $\lambda_{Lasso}$ are chosen among 0 to 1000 by 0.5 to generate a Lasso model with the least test MSE. The plot shown the relationship between the test MSE and the log Lambda is created in the Figure \ref{fig:lassoCV}. From the plot, the test MSE increases as $\lambda_{Lasso}$ increases, so $\lambda_{Lasso}$'s are not neccessary to be tested to determine an appropriate tuning parameter. As shown in the result of the 21-fold cross validation, the least test MSE is from the model with a tuning parameter of $19$, which results a test MSE of $3554176$.
+Like the modelling process in the ridge regression, the tuning variable $\lambda_{Lasso}$ are chosen among 0 to 1000 by 0.5 to generate a Lasso model with the least test MSE. The plot shown the relationship between the test MSE and the log Lambda is created in the Figure \ref{fig:LassoCV}. From the plot, the test MSE increases as $\lambda_{Lasso}$ increases, so $\lambda_{Lasso}$'s are not neccessary to be tested to determine an appropriate tuning parameter. As shown in the result of the 21-fold cross validation, the least test MSE is from the model with a tuning parameter of $19$, which results a test MSE of $3554176$.
 
-```{r lassoCV, fig.cap="\\label{fig:lassoCV}test MSE vs. log(Lamba) for the Lasso model"}
+```{r LassoCV, fig.cap="\\label{fig:lassoCV}test MSE vs. log(Lambda) for the Lasso model"}
 # Create the design matrix, using all variables we have
 XD <- model.matrix(Apps ~ ., data = college)
 # Doing the cross validation to choose the best tuning parameter
@@ -292,28 +295,23 @@ As the client suggested, the Elastic Net is used to improve the model. As shown 
 
 #### Section 5.2.1: Details about the Elastic Net Technique
 
-the Elastic Net takes the advantage of both ridge regression and lasso technique, since it adds both pernalty in the previous two model to the metric for minimization. To be more specific, the metric minimized in the Elastic Net model is shown in the Formula \ref{eq:ElnetMetric}, where the $\lambda_{Elnet}$ is the tuning parameter for the Elastic Net model, and the $\alpha$ is the parameter that decides the model is more similar as the ridge regression model or the lassa model.
+the Elastic Net takes the advantage of both ridge regression and lasso technique, since it adds both pernalty in the previous two model to the metric for minimization. To be more specific, the metric minimized in the Elastic Net model is shown in the Formula \ref{eq:ElnetMetric}, where the $\lambda_{Elnet}$ is the tuning parameter for the Elastic Net model, $k$ is the number of variables in the data set, which is $16$ in this project, and the $\alpha$ is the parameter that decides the model is more similar as the ridge regression model or the lassa model.
 
 \begin{equation}\label{eq:ElnetMetric}
-RSS + \lambda_{Elnet} \sum_{j = 1}^{k}((1 - \alpha)\hat{\beta_{j}^{2}} + \alpha |\hat{beta_{j}} |)
+RSS + \lambda_{Elnet} \sum_{j = 1}^{k}((1 - \alpha)\hat{\beta_{j}^{2}} + \alpha |\hat{\beta_{j}} |)
 \end{equation}
 
 #### Section 5.2.2: Fitting the Elastic Net Model
 
-When the model is fitted, several combinations of the $\lambda_{Elnet}$ and $\alpha$ are used to fit the model. For the same reason, the $21$-fold cross validation method is used to test the models different $\lambda_{Elnet}$ and $\alpha$'s, and the best model with the lowest RMSE is chosen to fit the final Elastic Net Model. 
+When the model is fitted, several combinations of the $\lambda_{Elnet}$ and $\alpha$ are used to fit the model. For the same reason as before, the $21$-fold cross validation method is used to test the models different $\lambda_{Elnet}$ and $\alpha$'s, and the best model with the lowest RMSE is chosen to fit the final Elastic Net Model. 
 
-```{r}
+```{r Elnetbetas}
 # Trainning the Elastic Net Model
 ElnetModel <- train(
   Apps ~ ., data = college,
   method = "glmnet",
   trControl = trainControl(method = "cv", number = 21)
 )
-```
-
-#### Section 5.2.3: Estimates for the Elastic Net Model
-
-```{r Elnetbetas}
 # Create a matrix to store the coefficients for the Full model, Ridge model, Lasso model, and Elastic Net model
 Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel), Lasso = coefficients(LassoModel), ElasticNet = coef(ElnetModel$finalModel, ElnetModel$bestTune$lambda))
 Mat <- as.matrix(Mat)
@@ -323,10 +321,36 @@ colnames(Mat) <- c("Full Model", "Shrinkage", "Lasso", "Elastic Net")
 Mat <- data.frame(Mat)
 # Output the coefficients for the full model, the Ridge model, the Lasso model, the Elastic Net model side by side
 knitr::kable(Mat, caption = "\\label{tab:Elnetbetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model vs. Elatic Net model")
+# return the test RMSE
+#ElnetModel
 ```
 
+#### Section 5.2.3: Estimates for the Elastic Net Model
+
+From the result, the optimal penalty having the lowest RMSE is with $\lambda_{Elnet}$ of $63.00427$ and $\alpha$ of $0.1$. Hence, The metric used can be written as in the Formula \ref{eq:ElnetMetricFinal}, which means the Elastic Net model used in this project is closer to the ridge regression since the penalty term of $\hat{\beta_{j}^{2}}$ contribute to the metric more. 
+
+\begin{equation}\label{eq:ElnetMetricFinal}
+RSS + 63.00427 \sum_{j = 1}^{16}(0.9 \hat{\beta_{j}^{2}} + 0.1 |\hat{\beta_{j}}|)
+\end{equation}
+
+As shown in the Table \ref{tab:Elnetbetas}, the coefficients are shrank, the exploratory variables are selected from the full model. The line for predicting of the Elastic Net model is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. From the $21$-fold cross validation test on this model, the test RMSE for the final Elastic Net model is $1624.236$. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model is a model that has the least test RMSE compared to all other $3$ previous. Thus, we can tell the Elastic net model is the most accurate model among the $4$ models.
+
+\begin{table}[!htbp]
+\centering
+\caption{Models and their test RMSE}
+\label{tab:ModelsRMSE}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{models}   & \textbf{test RMSE} \\ \hline
+LSLR model        & 1881.8             \\ \hline
+Ridge model       & 1888.64            \\ \hline
+Lasso model       & 1885.252           \\ \hline
+Elastic Net model & 1624.236           \\ \hline
+\end{tabular}
+\end{table}
 
 
 ## Section 6: Conclusion
 
+Comparing the four models built in this porject, I suggest the client to use the Elastic Net model, since as shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model has the least test RMSE, which implies that after doing the $21$-fold cross validation process, the Elastic Net model has the closest prediction to the real number of applications received by a university per year. Therefore, the model for predicting that I provide for the client is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. This prediction model uses $15$ variables in total and it has a test RMSE of only $1624.236$. The number of applications received by a univerty can be predict by plugging in the $15$ variables used in this model
 
