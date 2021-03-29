@@ -3,7 +3,6 @@ title: "STA363SecAProj2"
 author: "Rickey Huang"
 date: "3/16/2021"
 output: pdf_document
-extra_dependencies: ["float"]
 ---
 
 ```{r setup, include=FALSE}
@@ -34,6 +33,10 @@ library(Matrix)
 library(glmnet)
 # For table output
 library(knitr)
+# For elastic net technique
+# Need to run the next line if the package caret is not installed
+#install.packages("caret")
+library(caret)
 ```
 
 ### Section 1.1: Cleaning the missing data
@@ -45,7 +48,7 @@ dim(college)
 which(is.na(college))
 ```
 
-First of all, any missing data are inspected. However there is no missing data in this college data set. Since the header for the first column which shows the names of colleges are missed, I add a header (*"College"*) to a copy of the original data set I created and use this copy for the analysis below. 
+First of all, every row of data are inspected. However there is no missing data in this college data set. Since the header for the first column which shows the names of colleges are missed, I add a header (*"College"*) to a copy of the original data set I created and use this copy for the analysis below. 
 
 ### Section 1.2: Adjusting variables
 
@@ -92,7 +95,7 @@ BSSout <- regsubsets( Apps ~ ., data = college, nvmax = 16)
 
 Proceeding to the second stage, I compared how well models created in the stage 1 are using the $R_{adj}^{2}$.
 
-```{r m1adjr2, fig.cap="\\label{fig:m1adjr2}Adjusted R-squareds for the models created from the stage 1"}
+```{r m1adjr2, fig.cap = "\\label{fig:m1adjr2}Adjusted R-squareds for models created in the stage 1 of BSS"}
 # The adjusted R-squared for the models from the stage 1
 #summary(BSSout)$adjr2
 # Plot the adjusted R-squareds for models
@@ -101,7 +104,7 @@ plot(BSSout, scale = "adjr2")
 
 Gathering the $R_{adj}^{2}$ computed from the models, the Figure \ref{fig:m1adjr2} is created to visualize the result. Since we want a model using less variables to explain the pattern in the data as much as possible, we prefer a model with a higher $R_{adj}^{2}$ and less variables. The model with features *"PrivateYes", "F.undergrad", "P.Undergrad", "Outstate", "Room.Board", "Terminal", "perc.alumni", "Expend", "Grad.Rate", "Rate",* and the intercept with a $R_{adj}^{2}$ of $0.7738017$ is the best fit.
 
-After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by formula \ref{eq:RSS}, where $Y$ is the vector storing all Apps for each row, and $X_{D}$ is the design matrix.
+After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by Formula \ref{eq:RSS}, where $Y$ is the vector storing all Apps for each row, and $X_{D}$ is the design matrix.
 
 \begin{equation}\label{eq:RSS}
 RSS = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta})
@@ -115,6 +118,8 @@ LSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board
 # Output the estimates for the LSLR model
 knitr::kable(summary(LSLR)$coefficients, caption = "\\label{tab:LSLRbetas}The estimates for the LSLR model")
 ```
+
+
 
 ```{r}
 # Implement the k-fold technique
@@ -153,7 +158,7 @@ In order to further evaluating the model chosen, the $21$-fold cross validation 
 
 ## Section 3: Shrinkage Only
 
-### Section 3.1: Reasons for doing the shrinkage
+### Section 3.1: Reasons for doing the Shrinkage
 
 ```{r}
 #cor(college)
@@ -165,7 +170,7 @@ As the correlation table for all the variables in the data set provided is creat
 
 #### Section 3.2.1 Details about the Technique
 
-The shrinkage technique I use here for the second model is the Ridge Regression. Improved from the LSLR model, the metric RSS plus a penalty term is minimized here to choose better estimates. To be specific, the metric we are minimizing here is expanded in the formula \ref{eq:RidgeMetric}, where the $\lambda$ is the tuning parameter and the $\lambda \hat{\beta}^{T} \hat{\beta}$ is the penalty term. By adding this penalty term, we can shrink the estimates and in turn lower the standard error of our model.
+The shrinkage technique I use here for the second model is the Ridge Regression. Improved from the LSLR model, the metric RSS plus a penalty term is minimized here to choose better estimates. To be specific, the metric we are minimizing here is expanded in the Formula \ref{eq:RidgeMetric}, where the $\lambda \geqslant 0$ is the tuning parameter and the $\lambda \hat{\beta}^{T} \hat{\beta}$ is the penalty term. By adding this penalty term, we can shrink the estimates and in turn lower the standard error of our model.
 
 \begin{equation}\label{eq:RidgeMetric}
 RSS + \lambda \hat{\beta}^{T} \hat{\beta} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta}) + \lambda \hat{\beta}^{T} \hat{\beta}
@@ -178,8 +183,6 @@ In order to get an appropriate Ridge model, tuning parameters are chosen from 0 
 ```{r ridgeCV, fig.cap="\\label{ridgeCV} test MSE vs. log(Lamba) for the Ridge model"}
 # Create the design matrix, using all variables we have
 XD <- model.matrix(Apps ~ ., data = college)
-# Fit the initial Ridge Regression model
-InitialRidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, standardize = TRUE)
 # Doing the cross validation to choose the best tuning parameter
 set.seed(100)
 # As requested by the client, we want try the tuning parameters from 0 to 1000 by 0.5
@@ -197,10 +200,12 @@ plot(cv.ridge)
 RidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, lambda = cv.ridge$lambda.min)
 ```
 
-With this parameter, the corresponding penalty term is add to the RSS to create the metric used to minimized. In this way, the coefficients for the final Ridge model are shown in the table \ref{tab:Ridgebetas} with the coefficients for the full model without shrinkage placed side by side. Hence, the Ridge model can be written out as $\widehat{Apps} = 2053.32 + 8.48 Top10perc - 2.39 Top25perc - 449.81 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.17 Books - 0.11 Personal - 0.80 PhD - 7.98 Terminal + 6.04 S.F.Ratio - 21.59 perc.alumni + 0.07 Expand + 18.63 Grad.Rate - 4562.06 Rate$. Taking the square root of the test MSE, the test RMSE for the Ridge model is compated, which is $1888.664$. Comparing to the test RMSE for the full model which is $2014.712$, the Ridge model improves $6.26\%$ from the full model. The coefficients for the full model and the Ridge model are shown in the table \ref{Ridgebetas}. However, comparing to the LSLR model, which has a test RMSE of $1881.8$, since both the models uses the $21$-fold cross validation, the LSLR model performs better on the prediction. Hence, until this point, the LSLR model with only selection does a better job than that the Ridge model with only shrinkage.
+#### Section 3.2.3 The Estimates for the Ridge Model
+
+With this parameter, the corresponding penalty term is add to the RSS to create the metric minimized. In this way, the coefficients for the final Ridge model are shown in the Table \ref{tab:Ridgebetas} with the coefficients for the full model without shrinkage placed side by side. Hence, the Ridge model can be written out as $\widehat{Apps} = 2053.32 + 8.48 Top10perc - 2.39 Top25perc - 449.81 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.17 Books - 0.11 Personal - 0.80 PhD - 7.98 Terminal + 6.04 S.F.Ratio - 21.59 perc.alumni + 0.07 Expand + 18.63 Grad.Rate - 4562.06 Rate$.
 
 ```{r Ridgebetas}
-# Create a matrix to store the coefficients for the full and ridge model
+# Create a matrix to store the coefficients for the Full and Ridge model
 Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel))
 Mat <- as.matrix(Mat)
 # Add name to the matrix
@@ -208,13 +213,119 @@ colnames(Mat) <- c("Full Model", "Shrinkage")
 # Store the data into a dataframe
 Mat <- data.frame(Mat)
 # Output the coefficients for the full model and the Ridge model side by side
-knitr::kable(Mat, caption = "\\label{Ridgebetas}Comparing the Coefficients: Full model vs. Ridge model")
+knitr::kable(Mat, caption = "\\label{tab:Ridgebetas}Comparing the Coefficients: Full model vs. Ridge model")
 ```
 
+### Section 3.3 Evaluating the Shrinkage Model
+
+Taking the square root of the test MSE, the test RMSE for the Ridge model is compated, which is $1888.664$. Comparing to the test RMSE for the full model which is $2014.712$, the Ridge model improves $6.26\%$ from the full model. The coefficients for the full model and the Ridge model are shown in the Table \ref{tab:Ridgebetas}. From Table \ref{tab:Ridgebetas}, the coefficient for *"F.Undergrad"* shrinks from $-4.07$ to $-2.39$, and the coefficient for *"Terminal"* also drop from $-9.20$ to $-7.98$. However, comparing to the LSLR model, which has a test RMSE of $1881.8$, since both the models uses the $21$-fold cross validation, the LSLR model performs better on the prediction. Hence, until this point, the LSLR model with only selection does a better job than that the Ridge model with only shrinkage.
 
 ## Section 4: Selection and Shrinkage
 
+### Section 4.1: Reasons for doing both Selection and Shrinkage
+
+Since the test MSE of the previous model drops $6.26\%$ from the full model, the variance of the estimation is smaller. However, the ridge regression technique fits a more biased model to shrinkage the coefficients and variance. Also, since the Ridge Model keeps all variables in it, and a small set of exploratory variables is prefered for prediction, a selection technique could be add to the shrinkage process above to decrease the number of variables in our model. Therefore, the Lasso technique is a good fit for this situation, since it combine the advantage of the both the selection and shrinkage methods.
+
+### Section 4.2: The Lasso Model
+
+#### Section 4.2.1: Details about the Technique
+
+In order to do both the selection and shrinkage, the Lasso technique complete this task also by adding a penalty term. However, improved from the ridge regression, the penalty term is changed. In Lasso, the metric minimized is shown in the Formula \ref{eq:LassoMetric}, where the $\lambda_{Lasso} > 0$ is the tuning parameter for the lasso regression, k is the number of parameters in the model, which is $16$ in this project.
+
+\begin{equation}\label{eq:LassoMetric}
+RSS + {\lambda}_{Lasso} {\|\hat{\beta}\|}_{1} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta}) + {\lambda}_{Lasso} \sum_{j = 1}^{k} |\hat{{\beta}_{j}}|
+\end{equation}
+
+#### Section 4.2.2: Fitting the Lasso Model
+
+Like the modelling process in the ridge regression, the tuning variable $\lambda_{Lasso}$ are chosen among 0 to 1000 by 0.5 to generate a Lasso model with the least test MSE. The plot shown the relationship between the test MSE and the log Lambda is created in the Figure \ref{fig:lassoCV}. From the plot, the test MSE increases as $\lambda_{Lasso}$ increases, so $\lambda_{Lasso}$'s are not neccessary to be tested to determine an appropriate tuning parameter. As shown in the result of the 21-fold cross validation, the least test MSE is from the model with a tuning parameter of $19$, which results a test MSE of $3554176$.
+
+```{r lassoCV, fig.cap="\\label{fig:lassoCV}test MSE vs. log(Lamba) for the Lasso model"}
+# Create the design matrix, using all variables we have
+XD <- model.matrix(Apps ~ ., data = college)
+# Doing the cross validation to choose the best tuning parameter
+set.seed(100)
+# As requested by the client, we want try the tuning parameters from 0 to 1000 by 0.5
+cv.lasso <- cv.glmnet(XD[, -1], college$Apps, alpha = 1, nfold = 21, lambda = seq(from = 0, to = 1000, by = 0.5))
+# Plot the result
+plot(cv.lasso)
+# Return the smallest test MSE and the corresponding Lambda
+#min(cv.lasso$cvm)
+#cv.lasso$lambda.min
+# Compute the RMSE
+#sqrt(cv.lasso$cvm[1])
+#sqrt(cv.lasso$cvm[which.min(cv.lasso$cvm)])
+#(sqrt(cv.lasso$cvm[1]) - sqrt(cv.lasso$cvm[which.min(cv.lasso$cvm)])) / sqrt(cv.lasso$cvm[1])
+# Create the final Ridge model
+LassoModel <- glmnet(XD[, -1], college$Apps, alpha = 1, lambda = cv.lasso$lambda.min)
+```
+
+#### Section 4.2.2: The Estimates for the Lasso model
+
+As the pernalty term is added to the metric for minimizing, the final model for the Lasso model used for the college data can be created. The coefficients for the lasso model are shown in the Table \ref{tab:Lassobetas} with the parameters for the Full model and ridge model. Hence, the prediction line for the Lasso model can be written as following: $\widehat{Apps} = 1970.83 + 2.85 Top10perc - 213.76 PrivateYes + 0.65 F.Undergrad - 0.12 P.Undergrad + 0.06 Outstate + 0.22 Room.Board - 0.07 Books - 0.10 Personal - 5.88 Terminal - 18.39 perc.alumni + 0.06 Expand + 17.18 Grad.Rate - 4701.85 Rate$.
+
+```{r Lassobetas}
+# Create a matrix to store the coefficients for the Full model, Ridge model, and Lasso model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel), Lasso = coefficients(LassoModel))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage", "Lasso")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model, the Ridge model, and the Lasso model side by side
+knitr::kable(Mat, caption = "\\label{tab:Lassobetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model")
+```
+
+### Section 4.3: Evaluating the Lasso Model
+
+As shown the Table \ref{tab:Lassobetas}, the coefficients for the variables are further shrinked from the ridge model, and the coefficients for some variables in the Lasso model drop to $0$, which means such varaibles are not selected for prediction in the model. *"Top25perc", "PhD"*, and *"S.F.Ratio"* are dropped off from the full model in the Lasso model. For the same reason as in the Ridge model, the $21$-fold cross validation technique is used to show the predictive accuracy of the Lasso model. By taking the square root of the test MSE, we can get the test RMSE for the models. The test RMSE for the Lasso model is $1885.252$, which improves $21.95\%$ from the full model which has a test RMSE of $2415.345$. 
+
+Comparing the three models created so far, the LSLR model has the lowest test RMSE ($1881.8$), the test RMSE for the Ridge models is the highest ($1888.664$), and the Lasso model has a test RMSE in the middle ($1885.252$). Still at this step, the LSLR model is the best model for prediction for the data set given.
+
 ## Section 5: Elastic Net
+
+### Section 5.1: Reasons for using the Elastic Net technique
+
+As the client suggested, the Elastic Net is used to improve the model. As shown in the Table \ref{tab:Lassobetas}, the Lasso model just simply keeps one from strongly related variables and removes the rest of the variables from the full model. Hence, some correlations among variables that contributes to the prediction are simply ignored by the Lasso model. To fix this problem, the elastic net model could be a good choice.
+
+### Section 5.2: The Elastic Net Model
+
+#### Section 5.2.1: Details about the Elastic Net Technique
+
+the Elastic Net takes the advantage of both ridge regression and lasso technique, since it adds both pernalty in the previous two model to the metric for minimization. To be more specific, the metric minimized in the Elastic Net model is shown in the Formula \ref{eq:ElnetMetric}, where the $\lambda_{Elnet}$ is the tuning parameter for the Elastic Net model, and the $\alpha$ is the parameter that decides the model is more similar as the ridge regression model or the lassa model.
+
+\begin{equation}\label{eq:ElnetMetric}
+RSS + \lambda_{Elnet} \sum_{j = 1}^{k}((1 - \alpha)\hat{\beta_{j}^{2}} + \alpha |\hat{beta_{j}} |)
+\end{equation}
+
+#### Section 5.2.2: Fitting the Elastic Net Model
+
+When the model is fitted, several combinations of the $\lambda_{Elnet}$ and $\alpha$ are used to fit the model. For the same reason, the $21$-fold cross validation method is used to test the models different $\lambda_{Elnet}$ and $\alpha$'s, and the best model with the lowest RMSE is chosen to fit the final Elastic Net Model. 
+
+```{r}
+# Trainning the Elastic Net Model
+ElnetModel <- train(
+  Apps ~ ., data = college,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 21)
+)
+```
+
+#### Section 5.2.3: Estimates for the Elastic Net Model
+
+```{r Elnetbetas}
+# Create a matrix to store the coefficients for the Full model, Ridge model, Lasso model, and Elastic Net model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel), Lasso = coefficients(LassoModel), ElasticNet = coef(ElnetModel$finalModel, ElnetModel$bestTune$lambda))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage", "Lasso", "Elastic Net")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model, the Ridge model, the Lasso model, the Elastic Net model side by side
+knitr::kable(Mat, caption = "\\label{tab:Elnetbetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model vs. Elatic Net model")
+```
+
+
 
 ## Section 6: Conclusion
 
