@@ -1,0 +1,222 @@
+---
+title: "STA363SecAProj2-Code Appendix"
+author: "Rickey Huang"
+date: "3/16/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Loading the data
+college <- read.csv("~/Desktop/2021Spring/STA-363/Projects/Project 2/STA363Porject2/collegedata1.csv")
+```
+
+```{r}
+# Every package required in the project is libraried here
+# Package for the BSS
+library(leaps)
+# Packages for Ridge Regression
+# Need to run the next line if the package glmnet is not installed
+#install.packages("glmnet")
+library(Matrix)
+library(glmnet)
+# For table output
+library(knitr)
+# For elastic net technique
+# Need to run the next line if the package caret is not installed
+#install.packages("caret")
+library(caret)
+```
+
+```{r}
+# Show the dimension of the data set
+dim(college)
+# Examinate any massing data in the data set
+which(is.na(college))
+```
+
+```{r}
+# Remove the column Enroll as it is usually unavailable
+college <- subset(college, select = -Enroll)
+# To make sure the column Enroll is actually removed
+dim(college)
+# Add a column which represents the acceptance rate
+college$Rate <- college$Accept / college$Apps
+# Remove the column representing the number of acceptance then
+college <- subset(college, select = -Accept)
+# Remove the college name column
+college <- subset(college, select = -College)
+# Change variable Private to PrivateYes
+college$PrivateYes[college$Private=="Yes"] <- 1
+college$PrivateYes[college$Private!="Yes"] <- 0
+# Remove the Private column
+college <- subset(college, select = -Private)
+# To check whether the data is actually modified
+head(college)
+dim(college)
+```
+
+```{r}
+# Stage 1
+# Fit and choose the best models amoung the models with different amount of variables and store
+# them in BSSout.
+# nvmax is set to be 16, since the full model contains 16 exploratory variables in it.
+BSSout <- regsubsets( Apps ~ ., data = college, nvmax = 16)
+# Just for checking
+#BSSout$rss
+#plot(BSSout$rss)
+```
+
+```{r m1adjr2, fig.cap = "\\label{fig:m1adjr2}Adjusted R-squareds for models created in the stage 1 of BSS"}
+# The adjusted R-squared for the models from the stage 1
+summary(BSSout)$adjr2
+# Plot the adjusted R-squareds for models
+plot(BSSout, scale = "adjr2")
+```
+
+```{r LSLRbetas}
+# Fit the LSLR models with the features we selected
+LSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board + Terminal + perc.alumni + Expend + Grad.Rate + Rate, data = college)
+# Output the estimates for the LSLR model
+knitr::kable(summary(LSLR)$coefficients, caption = "\\label{tab:LSLRbetas}The estimates for the LSLR model")
+```
+
+```{r}
+# Implement the k-fold technique
+# Create two null matrices to store the residuals of the LSLR model
+residualskfold <- matrix(NA, nrow=777, ncol=1)
+# Set up k
+# Choose 21, since 21 is a factor of the number of rows 777
+k <- 21
+#set random seed
+set.seed(100)
+#create folds
+folds <- sample(rep(1:k, 37),777,replace = FALSE)
+#for loop
+for(i in 1:k){
+  #find the rows in fold i
+  infold <- which(folds==i)
+  #create a kfoldCV training set
+  kfoldCVTraining <- college[-infold,]
+  #create a kfoldCV test set
+  kfoldCVTest <- college[infold,]
+  #train the LSLR model
+  kfoldLSLR <- lm(Apps ~ PrivateYes + F.Undergrad + P.Undergrad + Outstate + Room.Board + Terminal + perc.alumni + Expend + Grad.Rate + Rate, data=kfoldCVTraining)
+  #predict on the kfoldCV test data using the LSLR model
+  pred <- predict(kfoldLSLR, newdata=kfoldCVTest)
+  #compute the residuals for the LSLR model and store then 
+  residualskfold[infold] <- kfoldCVTest$Apps - pred
+}
+#calculate the RSS of the LSLR model
+RSSkfold <- t(residualskfold)%*%(residualskfold)
+#calculate the RMSE of the LSLR model
+RMSEkfold <- sqrt(RSSkfold/777)
+RMSEkfold
+```
+
+```{r}
+cor(college)
+```
+
+```{r ridgeCV, fig.cap="\\label{ridgeCV} test MSE vs. log(Lambda) for the Ridge model"}
+# Create the design matrix, using all variables we have
+XD <- model.matrix(Apps ~ ., data = college)
+# Doing the cross validation to choose the best tuning parameter
+set.seed(100)
+# As requested by the client, we want try the tuning parameters from 0 to 1000 by 0.5
+cv.ridge <- cv.glmnet(XD[, -1], college$Apps, alpha = 0, nfold = 21, lambda = seq(from = 0, to = 1000, by = 0.5))
+# Plot the result
+plot(cv.ridge)
+# Return the smallest test MSE and the corresponding Lambda
+min(cv.ridge$cvm)
+#cv.ridge$lambda.min
+# Compute the RMSE for the full model and ridge model
+sqrt(cv.ridge$cvm[1])
+sqrt(cv.ridge$cvm[which.min(cv.ridge$cvm)])
+# Show the percentage in improvement
+(sqrt(cv.ridge$cvm[1]) - sqrt(cv.ridge$cvm[which.min(cv.ridge$cvm)])) / sqrt(cv.ridge$cvm[1])
+# Create the final Ridge model
+RidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, lambda = cv.ridge$lambda.min)
+```
+
+```{r Ridgebetas}
+# Create a matrix to store the coefficients for the Full and Ridge model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model and the Ridge model side by side
+knitr::kable(Mat, caption = "\\label{tab:Ridgebetas}Comparing the Coefficients: Full model vs. Ridge model")
+```
+
+```{r LassoCV, fig.cap="\\label{fig:LassoCV}test MSE vs. log(Lambda) for the Lasso model"}
+# Create the design matrix, using all variables we have
+XD <- model.matrix(Apps ~ ., data = college)
+# Doing the cross validation to choose the best tuning parameter
+set.seed(100)
+# As requested by the client, we want try the tuning parameters from 0 to 1000 by 0.5
+cv.lasso <- cv.glmnet(XD[, -1], college$Apps, alpha = 1, nfold = 21, lambda = seq(from = 0, to = 1000, by = 0.5))
+# Plot the result
+plot(cv.lasso)
+# Return the smallest test MSE and the corresponding Lambda
+min(cv.lasso$cvm)
+#cv.lasso$lambda.min
+# Compute the RMSE for the full model and the lasso model
+sqrt(cv.lasso$cvm[1])
+sqrt(cv.lasso$cvm[which.min(cv.lasso$cvm)])
+# Compute the percent improvement
+(sqrt(cv.lasso$cvm[1]) - sqrt(cv.lasso$cvm[which.min(cv.lasso$cvm)])) / sqrt(cv.lasso$cvm[1])
+# Create the final Ridge model
+LassoModel <- glmnet(XD[, -1], college$Apps, alpha = 1, lambda = cv.lasso$lambda.min)
+```
+
+```{r Lassobetas}
+# Create a matrix to store the coefficients for the Full model, Ridge model, and Lasso model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel), Lasso = coefficients(LassoModel))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage", "Lasso")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model, the Ridge model, and the Lasso model side by side
+knitr::kable(Mat, caption = "\\label{tab:Lassobetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model")
+```
+
+```{r Elnetbetas}
+# Trainning the Elastic Net Model
+ElnetModel <- train(
+  Apps ~ ., data = college,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 21)
+)
+# Create a matrix to store the coefficients for the Full model, Ridge model, Lasso model, and Elastic Net model
+Mat <- cbind(FullModel = coefficients(glmnet(XD[,-1],college$Apps, alpha = 0, lambda = 0)), Shrinkage = coefficients(RidgeModel), Lasso = coefficients(LassoModel), ElasticNet = coef(ElnetModel$finalModel, ElnetModel$bestTune$lambda))
+Mat <- as.matrix(Mat)
+# Add name to the matrix
+colnames(Mat) <- c("Full Model", "Shrinkage", "Lasso", "Elastic Net")
+# Store the data into a dataframe
+Mat <- data.frame(Mat)
+# Output the coefficients for the full model, the Ridge model, the Lasso model, the Elastic Net model side by side
+knitr::kable(Mat, caption = "\\label{tab:Elnetbetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model vs. Elastic Net model")
+# return the test RMSE
+ElnetModel
+```
+
+\begin{table}[!htbp]
+\centering
+\caption{Models with their test RMSE}
+\label{tab:ModelsRMSE}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{models}   & \textbf{test RMSE} \\ \hline
+LSLR model        & 1881.8             \\ \hline
+Ridge model       & 1888.64            \\ \hline
+Lasso model       & 1885.252           \\ \hline
+Elastic Net model & 1624.236           \\ \hline
+\end{tabular}
+\end{table}

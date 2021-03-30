@@ -1,5 +1,5 @@
 ---
-title: "STA363SecAProj2"
+title: "STA363SecAProj2-Formal Report"
 author: "Rickey Huang"
 date: "3/16/2021"
 output: pdf_document
@@ -100,7 +100,7 @@ Proceeding to the second stage, I compared how well the models created in the st
 
 ```{r m1adjr2, fig.cap = "\\label{fig:m1adjr2}Adjusted R-squareds for models created in the stage 1 of BSS"}
 # The adjusted R-squared for the models from the stage 1
-summary(BSSout)$adjr2
+#summary(BSSout)$adjr2
 # Plot the adjusted R-squareds for models
 plot(BSSout, scale = "adjr2")
 ```
@@ -279,6 +279,8 @@ Mat <- data.frame(Mat)
 knitr::kable(Mat, caption = "\\label{tab:Lassobetas}Comparing the Coefficients: Full model vs. Ridge model vs. Lasso model")
 ```
 
+\pagebreak
+
 ### Section 4.3: Evaluating the Lasso Model
 
 As shown the Table \ref{tab:Lassobetas}, the coefficients for the variables are further shrank from the ridge model, and the coefficients for some variables in the Lasso model drop to $0$, which means such variables are not selected for prediction in the Lasso model. *"Top25perc", "PhD"*, and *"S.F.Ratio"* are dropped from the full model in the Lasso model. For the same reason as in the Ridge model, the $21$-fold cross validation technique is used to show the predictive accuracy of the Lasso model. By taking the square root of the test MSE, we can get the test RMSE for the models. The test RMSE for the Lasso model is $1885.252$, which improves $21.95\%$ from the full model which has a test RMSE of $2415.345$. 
@@ -333,7 +335,11 @@ From the result, the optimal penalty having the lowest RMSE uses $\lambda_{Elnet
 RSS + 63.00427 \sum_{j = 1}^{16}(0.9 \hat{\beta_{j}^{2}} + 0.1 |\hat{\beta_{j}}|)
 \end{equation}
 
-As shown in the Table \ref{tab:Elnetbetas}, the coefficients are shrank, and the exploratory variable *"PhD"* is dropped from the full model. The line for predicting of the Elastic Net model is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. From the $21$-fold cross validation test on this model, the test RMSE for the final Elastic Net model is $1624.236$. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model is a model that has the least test RMSE compared to all other $3$ previous. Thus, we can tell the Elastic net model is the most accurate model among the $4$ models.
+As shown in the Table \ref{tab:Elnetbetas}, the coefficients are shrank, and the exploratory variable *"PhD"* is dropped from the full model. The line for predicting of the Elastic Net model is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. 
+
+### Section 5.3: Evaluating the Elastic Net Model
+
+From the $21$-fold cross validation test on this model, the test RMSE for the final Elastic Net model is $1624.236$. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model is a model that has the least test RMSE compared to all other $3$ previous. Thus, we can tell the Elastic net model is the most accurate model among the $4$ models.
 
 \begin{table}[!htbp]
 \centering
