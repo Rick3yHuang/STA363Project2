@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Abstract/ Executive Summary
 
-Predicting the number of applicaitons received by a university per year is important for admission officers to allocate the incoming students' demands for housing, dining, and so on, which in turn can increase the accuracy of universities' budgets in these areas. In order to predict the number of applications, many aspects about the information of the universities are considered, $16$ variables like the acceptance rate, the number of undergraduate students, the student faculty ratio and so on are used to fit a model for prediction. In this project, four estimation models are fitted, which are least-square line regression model (LSLR model), ridge regression model (Ridge model), Lasso model, and the Elastic Net model. To compare the models, the accuracy for prediction of all four models is tested using the k-fold cross validation technique. The process and steps for building the models and the detail results are shown in the body paragraphs formal report. In conclusion, the Elastic Net model is suggest to the client to do the prediction job, since it has a lowest test RMSE which is $1624.236$.
+Predicting the number of applicaitons received by a university per year is important for admission officers to allocate the incoming students' demands for housing, dining, and so on, which in turn can help the universities set up their budgets in these areas. In order to predict the number of applications, many aspects about the information of the universities are considered, $16$ variables like the acceptance rate, the number of undergraduate students, the student faculty ratio and so on are used to fit a model for prediction. In this project, four estimation models are fitted, which are least-square line regression model (LSLR model), ridge regression model (Ridge model), Lasso model, and the Elastic Net model. To compare the models, the accuracies for prediction of all four models are tested using the k-fold cross validation technique. The process and steps for building the models and the detail results are shown in the body paragraphs in this formal report. In conclusion, the Elastic Net model is suggested to the client to do the prediction job, since it has a lowest test RMSE which is $1624.236$.
 
 ## Section 1: Data Cleaning
 
@@ -48,7 +48,7 @@ dim(college)
 which(is.na(college))
 ```
 
-First of all, every row of data are inspected. However there is no missing data in this college data set. Since the header for the first column which shows the names of colleges are missed, I add a header (*"College"*) to a copy of the original data set I created and use this copy for the analysis below. 
+First of all, every row of data are inspected. However there is no missing data in this college data set. Since the header for the first column which shows the names of colleges are missed, I add a header (*"College"*) to a copy of the original data set I created and use this copy for the analysis in the following 
 
 ### Section 1.2: Adjusting variables
 
@@ -73,11 +73,11 @@ head(college)
 dim(college)
 ```
 
-From the infromation provided, I learn that the number of student enrolled in the colleges are usually not easily to be collected, the column stored this information is deleted from our data set. Also, since the acceptance rate is a more appropriate varaible than the numebr of acceptance, a new collumn named *"Rate"* is created using the existing variables acceptance *"Accept"* to be divided by the number of applications per academic year *"Apps"*. After adding this new variable to our data, since it is perfectly correlated to the variable *"Accept"*, the old and incomparable variable *"Accept"* is deleted. After arranging the variables, I got the data set for the analysis in this project, which has $777$ observations and $18$ variables, and among them only the variable *"Private"* is a categorical variable with two levels. Since the goal of this project is to predict the number of applications received during an academic year, the variable *"Apps"* would be the response variable in this project, and all other variables except the names of universities would be the exploratory variables. For the convenience of the analysis, I removed the column storing the college names, and change the variable *"Private"* to *"PrivateYes"*, which is a variable with $1$ indicating private school and $0$ for not a private school.
+From the infromation provided by the client, since the number of student enrolled in the colleges are usually not easily to be collected, the column stored this information is deleted from our data set. Also, since the acceptance rate is a more appropriate varaible than the numebr of acceptance, a new collumn named *"Rate"* is created using the existing variables *"Accept"* to be divided by the number of applications per academic year *"Apps"*. After adding this new variable to our data, since it is perfectly correlated to the variable *"Accept"*, the old and incomparable variable *"Accept"* is deleted. After arranging the variables, I get the data set for the analysis in this project, which has $777$ observations and $17$ variables, and among them only the variable *"Private"* is a categorical variable with two levels. Since the goal of this project is to predict the number of applications received during an academic year, the variable *"Apps"* would be the response variable in this project, and all other variables except the names of universities would be the exploratory variables. For the convenience of the analysis, I removed the column storing the college names, and change the variable *"Private"* to *"PrivateYes"*, which is a variable with $1$ indicating private schools and $0$ for non-private schools.
 
 ## Section 2: Selection Only
 
-In order to have a comparatively precise prediction in the end, several models are fitted compared in this project. This section focuses on the selection-only Least Square Linear Regression (LSLR) model, which also implements the Best Subset Selection (BSS) technique to refine the variables we have.
+In order to have a comparatively precise prediction in the end, several models are fitted and compared in this project. This section focuses on the selection-only Least Square Linear Regression (LSLR) model, which also implements the Best Subset Selection (BSS) technique to refine the variables we have.
 
 ### Section 2.1: Best Subset Selection - Stage 1
 
@@ -96,24 +96,24 @@ BSSout <- regsubsets( Apps ~ ., data = college, nvmax = 16)
 
 ### Section 2.2: Best Subset Selection - Stage 2
 
-Proceeding to the second stage, I compared how well models created in the stage 1 are using the $R_{adj}^{2}$.
+Proceeding to the second stage, I compared how well the models created in the stage 1 are using the $R_{adj}^{2}$.
 
 ```{r m1adjr2, fig.cap = "\\label{fig:m1adjr2}Adjusted R-squareds for models created in the stage 1 of BSS"}
 # The adjusted R-squared for the models from the stage 1
-#summary(BSSout)$adjr2
+summary(BSSout)$adjr2
 # Plot the adjusted R-squareds for models
 plot(BSSout, scale = "adjr2")
 ```
 
-Gathering the $R_{adj}^{2}$ computed from the models, the Figure \ref{fig:m1adjr2} is created to visualize the result. Since we want a model using less variables to explain the pattern in the data as much as possible, we prefer a model with a higher $R_{adj}^{2}$ and less variables. The model with features *"PrivateYes", "F.undergrad", "P.Undergrad", "Outstate", "Room.Board", "Terminal", "perc.alumni", "Expend", "Grad.Rate", "Rate",* and the intercept with a $R_{adj}^{2}$ of $0.7738017$ is the best fit.
+Gathering the $R_{adj}^{2}$ computed from the models, the Figure \ref{fig:m1adjr2} is created to visualize the result. Since we want a model using less variables to explain the pattern in the data as much as possible, we prefer a model with a higher $R_{adj}^{2}$ and less variables. The model using features *"PrivateYes", "F.undergrad", "P.Undergrad", "Outstate", "Room.Board", "Terminal", "perc.alumni", "Expend", "Grad.Rate", "Rate",* and the intercept with a $R_{adj}^{2}$ of $0.7738017$ is the best fit.
 
-After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimize the residual sum of squares (RSS), which is obtained by Formula \ref{eq:RSS}, where $Y$ is the vector storing all Apps for each row, and $X_{D}$ is the design matrix.
+After the features for the LSLR model are chosen, the coefficients for these features can be calculated. In this LSLR model, the estimates are chosen by minimizing the residual sum of squares (RSS), which is obtained by Formula \ref{eq:RSS}, where $Y$ is the vector storing all Apps for each row, $X_{D}$ is the design matrix, and $\hat{\beta}$ is the estimates for the coefficients.
 
 \begin{equation}\label{eq:RSS}
 RSS = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta})
 \end{equation}
 
-As a result we get a model with coefficients as shown in the Table \ref{tab:LSLRbetas}. Hence the final regression line gotten is $\widehat{Apps} = 1994.50 - 353.54 PrivateYes + 0.66 F.Undergrad - 0.16 P.Undergrad + 0.08 Outstate + 0.24 Room.Board - 9.89 Terminal - 20.15 perc.alumni+ 0.07 Expand + 19.05 Grad.Rate - 4812.59 Rate$, which has an $R_{adj}^{2}$ of $0.7738017$.
+As a result we get a model with coefficients as shown in the Table \ref{tab:LSLRbetas}. Hence the final regression line gotten is $\widehat{Apps} = 1994.50 - 353.54 PrivateYes + 0.66 F.Undergrad - 0.16 P.Undergrad + 0.08 Outstate + 0.24 Room.Board - 9.89 Terminal - 20.15 perc.alumni+ 0.07 Expand + 19.05 Grad.Rate - 4812.59 Rate$, which has a $R_{adj}^{2}$ of $0.7738017$.
 
 ```{r LSLRbetas}
 # Fit the LSLR models with the features we selected
@@ -157,7 +157,7 @@ RMSEkfold <- sqrt(RSSkfold/777)
 #RMSEkfold
 ```
 
-In order to further evaluating the model chosen, the $21$-fold cross validation tachnique is use to assess the performance of the LSLR model in prediction by dividing our data into $21$ folds of training data and test data. The reason that the k-fold cross validation is chosen is that the data we use is a comparatively large data set, if we use the LOOCV, the cross validation process will be computationally expensive. Hence, the k-fold could not result a low accuracy or a high variance variation, and it also compute the result faster than the LOOCV technique. As a result of the cross validation for the model, we compute the test RMSE for the LSLR model which is $1881.8$. From this number, it is clear to see that the test RMSE is large, which means the prediction from the LSLR is relatively far from the real data points we have.
+In order to further evaluating the model chosen, the $21$-fold cross validation tachnique is use to assess the performance of the LSLR model in prediction by dividing our data into $21$ folds of training data and test data and using each one fold to test the model trained by the rest of data. The reason that the k-fold cross validation is chosen is that the data we use is a comparatively large data set, if we use the LOOCV, the cross validation process will be computationally expensive. Hence, the k-fold would not result a low accuracy or a high variance problem, and it also computes the result faster than the LOOCV technique. As a result of the cross validation for the model, we compute the test RMSE for the LSLR model which is $1881.8$. From this number, it is clear to see that the test RMSE is large, which means the prediction from the LSLR is relatively far from the real data points we have.
 
 ## Section 3: Shrinkage Only
 
@@ -167,13 +167,13 @@ In order to further evaluating the model chosen, the $21$-fold cross validation 
 #cor(college)
 ```
 
-As the correlation table for all the variables in the data set provided is created, there are many variables are strongly correlated to each other. For example, the correlation between *"Top10perc"* and *"Top25perc"* is $0.8919950$, and the correlation between *"terminal"* and *"PhD* is $0.84958703$. These strong correlated data would in turn result in a high coefficients estimates and a high standard error in the model fitted. Hence the shrinkage technique is appropriate to be used here to solve this problem.
+As the correlation table for all the variables in the data set provided is created, there are many variables are strongly correlated to each other. For example, the correlation between *"Top10perc"* and *"Top25perc"* is $0.8919950$, and the correlation between *"terminal"* and *"PhD* is $0.84958703$. These strong correlated data would in turn result in a high estimates for the coefficients and a high standard error in the model fitted. Hence the shrinkage technique is appropriate to be used here to solve this problem in the data.
 
 ### Section 3.2 Ridge Regression
 
 #### Section 3.2.1 Details about the Technique
 
-The shrinkage technique I use here for the second model is the Ridge Regression. Improved from the LSLR model, the metric RSS plus a penalty term is minimized here to choose better estimates. To be specific, the metric we are minimizing here is expanded in the Formula \ref{eq:RidgeMetric}, where the $\lambda \geqslant 0$ is the tuning parameter and the $\lambda \hat{\beta}^{T} \hat{\beta}$ is the penalty term. By adding this penalty term, we can shrink the estimates and in turn lower the standard error of our model.
+The shrinkage technique I use here for the second model is the Ridge Regression. Improved from the LSLR model, the metric RSS plus a penalty term is minimized here to choose better estimates. To be specific, the metric we are minimizing here is expanded in the Formula \ref{eq:RidgeMetric}, where the $\lambda \geqslant 0$ is the tuning parameter and the $\lambda \hat{\beta}^{T} \hat{\beta}$ is the penalty term. By adding this penalty term, we can shrink the estimates and in turn lower the standard errors of the model.
 
 \begin{equation}\label{eq:RidgeMetric}
 RSS + \lambda \hat{\beta}^{T} \hat{\beta} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta}) + \lambda \hat{\beta}^{T} \hat{\beta}
@@ -205,7 +205,7 @@ RidgeModel <- glmnet(XD[, -1], college$Apps, alpha = 0, lambda = cv.ridge$lambda
 
 #### Section 3.2.3 The Estimates for the Ridge Model
 
-With this parameter, the corresponding penalty term is add to the RSS to create the metric minimized. In this way, the coefficients for the final Ridge model are shown in the Table \ref{tab:Ridgebetas} with the coefficients for the full model without shrinkage placed side by side. Hence, the Ridge model can be written out as $\widehat{Apps} = 2053.32 + 8.48 Top10perc - 2.39 Top25perc - 449.81 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.17 Books - 0.11 Personal - 0.80 PhD - 7.98 Terminal + 6.04 S.F.Ratio - 21.59 perc.alumni + 0.07 Expand + 18.63 Grad.Rate - 4562.06 Rate$.
+With this parameter, the corresponding penalty term is added to the RSS to create the minimized metric. In this way, the coefficients for the final Ridge model are shown in the Table \ref{tab:Ridgebetas} with the coefficients for the full model without shrinkage placed side by side. Hence, the Ridge model can be written out as $\widehat{Apps} = 2053.32 + 8.48 Top10perc - 2.39 Top25perc - 449.81 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.17 Books - 0.11 Personal - 0.80 PhD - 7.98 Terminal + 6.04 S.F.Ratio - 21.59 perc.alumni + 0.07 Expand + 18.63 Grad.Rate - 4562.06 Rate$.
 
 ```{r Ridgebetas}
 # Create a matrix to store the coefficients for the Full and Ridge model
@@ -221,19 +221,19 @@ knitr::kable(Mat, caption = "\\label{tab:Ridgebetas}Comparing the Coefficients: 
 
 ### Section 3.3 Evaluating the Shrinkage Model
 
-Taking the square root of the test MSE, the test RMSE for the Ridge model is compated, which is $1888.664$. Comparing to the test RMSE for the full model which is $2014.712$, the Ridge model improves $6.26\%$ from the full model. The coefficients for the full model and the Ridge model are shown in the Table \ref{tab:Ridgebetas}. From Table \ref{tab:Ridgebetas}, the coefficient for *"F.Undergrad"* shrinks from $-4.07$ to $-2.39$, and the coefficient for *"Terminal"* also drop from $-9.20$ to $-7.98$. However, comparing to the LSLR model, which has a test RMSE of $1881.8$, since both the models uses the $21$-fold cross validation, the LSLR model performs better on the prediction. Hence, until this point, the LSLR model with only selection does a better job than that the Ridge model with only shrinkage.
+Taking the square root of the test MSE, the test RMSE for the Ridge model is computed, which is $1888.664$. Comparing to the test RMSE for the full model which is $2014.712$, the Ridge model improves $6.26\%$ from the full model.  Exhibited in the Table \ref{tab:Ridgebetas}, the coefficient for *"F.Undergrad"* shrinks from $-4.07$ to $-2.39$, and the coefficient for *"Terminal"* also drops from $-9.20$ to $-7.98$. However, comparing to the LSLR model, which has a test RMSE of $1881.8$, since both the models uses the $21$-fold cross validation, the Ridge model performs not so well as the LSLR model does on prediction. Hence, at this point, the LSLR model with only selection does a better job than that the Ridge model with only shrinkage.
 
 ## Section 4: Selection and Shrinkage
 
 ### Section 4.1: Reasons for doing both Selection and Shrinkage
 
-Since the test MSE of the previous model drops $6.26\%$ from the full model, the variance of the estimation is smaller. However, the ridge regression technique fits a more biased model to shrinkage the coefficients and variance. Also, since the Ridge Model keeps all variables in it, and a small set of exploratory variables is prefered for prediction, a selection technique could be add to the shrinkage process above to decrease the number of variables in our model. Therefore, the Lasso technique is a good fit for this situation, since it combine the advantage of the both the selection and shrinkage methods.
+Since the test MSE of the previous model drops $6.26\%$ from the full model, the variance of the estimation is smaller. However, the ridge regression technique fits a biased model to shrink the coefficients and the variances, and the test RMSE for the Ridge model is higher than the selection-only LSLR model. Also, since the Ridge model keeps all variables in it, and a small set of exploratory variables is prefered for prediction, a selection technique could be added to the shrinkage process above to decrease the number of variables in the shrunk model. Therefore, the Lasso technique is a good fit for this situation, since it combines the advantages of both the selection and the shrinkage methods.
 
 ### Section 4.2: The Lasso Model
 
 #### Section 4.2.1: Details about the Technique
 
-In order to do both the selection and shrinkage, the Lasso technique complete this task also by adding a penalty term. However, improved from the ridge regression, the penalty term is changed. In Lasso, the metric minimized is shown in the Formula \ref{eq:LassoMetric}, where the $\lambda_{Lasso} > 0$ is the tuning parameter for the lasso regression, k is the number of parameters in the model, which is $16$ in this project.
+In order to do both the selection and shrinkage, the Lasso technique complete this task also by adding a penalty term. However, improved from the ridge regression, the penalty term for Lasso is changed. In Lasso, the metric minimized is shown in the Formula \ref{eq:LassoMetric}, where the $\lambda_{Lasso} > 0$ is the tuning parameter for the lasso regression, k is the number of parameters in the model, which is $16$ in this project.
 
 \begin{equation}\label{eq:LassoMetric}
 RSS + {\lambda}_{Lasso} {\|\hat{\beta}\|}_{1} = (Y - X_{D} \hat{\beta})^{T}(Y- X_{D} \hat{\beta}) + {\lambda}_{Lasso} \sum_{j = 1}^{k} |\hat{{\beta}_{j}}|
@@ -241,9 +241,9 @@ RSS + {\lambda}_{Lasso} {\|\hat{\beta}\|}_{1} = (Y - X_{D} \hat{\beta})^{T}(Y- X
 
 #### Section 4.2.2: Fitting the Lasso Model
 
-Like the modelling process in the ridge regression, the tuning variable $\lambda_{Lasso}$ are chosen among 0 to 1000 by 0.5 to generate a Lasso model with the least test MSE. The plot shown the relationship between the test MSE and the log Lambda is created in the Figure \ref{fig:LassoCV}. From the plot, the test MSE increases as $\lambda_{Lasso}$ increases, so $\lambda_{Lasso}$'s are not neccessary to be tested to determine an appropriate tuning parameter. As shown in the result of the 21-fold cross validation, the least test MSE is from the model with a tuning parameter of $19$, which results a test MSE of $3554176$.
+Like the modelling process in the ridge regression, the tuning variable $\lambda_{Lasso}$ are chosen among 0 to 1000 by 0.5 to generate a Lasso model with the least test MSE. Figure \ref{fig:LassoCV} shown the relationship between the test MSE and the log Lambda. From the plot, the test MSE increases as $\lambda_{Lasso}$ increases, so $\lambda_{Lasso}$'s larger than $1000$ are not neccessary to be tested to determine an appropriate tuning parameter. As shown in the result of the $21$-fold cross validation, the least test MSE is from the model with a tuning parameter of $19$, which results a test MSE of $3554176$.
 
-```{r LassoCV, fig.cap="\\label{fig:lassoCV}test MSE vs. log(Lambda) for the Lasso model"}
+```{r LassoCV, fig.cap="\\label{fig:LassoCV}test MSE vs. log(Lambda) for the Lasso model"}
 # Create the design matrix, using all variables we have
 XD <- model.matrix(Apps ~ ., data = college)
 # Doing the cross validation to choose the best tuning parameter
@@ -281,7 +281,7 @@ knitr::kable(Mat, caption = "\\label{tab:Lassobetas}Comparing the Coefficients: 
 
 ### Section 4.3: Evaluating the Lasso Model
 
-As shown the Table \ref{tab:Lassobetas}, the coefficients for the variables are further shrinked from the ridge model, and the coefficients for some variables in the Lasso model drop to $0$, which means such varaibles are not selected for prediction in the model. *"Top25perc", "PhD"*, and *"S.F.Ratio"* are dropped off from the full model in the Lasso model. For the same reason as in the Ridge model, the $21$-fold cross validation technique is used to show the predictive accuracy of the Lasso model. By taking the square root of the test MSE, we can get the test RMSE for the models. The test RMSE for the Lasso model is $1885.252$, which improves $21.95\%$ from the full model which has a test RMSE of $2415.345$. 
+As shown the Table \ref{tab:Lassobetas}, the coefficients for the variables are further shrinked from the ridge model, and the coefficients for some variables in the Lasso model drop to $0$, which means such varaibles are not selected for prediction in the Lasso model. *"Top25perc", "PhD"*, and *"S.F.Ratio"* are dropped from the full model in the Lasso model. For the same reason as in the Ridge model, the $21$-fold cross validation technique is used to show the predictive accuracy of the Lasso model. By taking the square root of the test MSE, we can get the test RMSE for the models. The test RMSE for the Lasso model is $1885.252$, which improves $21.95\%$ from the full model which has a test RMSE of $2415.345$. 
 
 Comparing the three models created so far, the LSLR model has the lowest test RMSE ($1881.8$), the test RMSE for the Ridge models is the highest ($1888.664$), and the Lasso model has a test RMSE in the middle ($1885.252$). Still at this step, the LSLR model is the best model for prediction for the data set given.
 
@@ -295,7 +295,7 @@ As the client suggested, the Elastic Net is used to improve the model. As shown 
 
 #### Section 5.2.1: Details about the Elastic Net Technique
 
-the Elastic Net takes the advantage of both ridge regression and lasso technique, since it adds both pernalty in the previous two model to the metric for minimization. To be more specific, the metric minimized in the Elastic Net model is shown in the Formula \ref{eq:ElnetMetric}, where the $\lambda_{Elnet}$ is the tuning parameter for the Elastic Net model, $k$ is the number of variables in the data set, which is $16$ in this project, and the $\alpha$ is the parameter that decides the model is more similar as the ridge regression model or the lassa model.
+the Elastic Net takes the advantage of both ridge regression and lasso technique, since it adds both pernalty in the previous two model to the metric for minimization. To be more specific, the metric minimized in the Elastic Net model is shown in the Formula \ref{eq:ElnetMetric}, where the $\lambda_{Elnet}$ is the tuning parameter for the Elastic Net model, $k$ is the number of variables in the data set, which is $16$ in this project, and the $\alpha$ is the parameter that decides whether the model is more similar to the ridge regression model or the lasso model.
 
 \begin{equation}\label{eq:ElnetMetric}
 RSS + \lambda_{Elnet} \sum_{j = 1}^{k}((1 - \alpha)\hat{\beta_{j}^{2}} + \alpha |\hat{\beta_{j}} |)
@@ -303,7 +303,7 @@ RSS + \lambda_{Elnet} \sum_{j = 1}^{k}((1 - \alpha)\hat{\beta_{j}^{2}} + \alpha 
 
 #### Section 5.2.2: Fitting the Elastic Net Model
 
-When the model is fitted, several combinations of the $\lambda_{Elnet}$ and $\alpha$ are used to fit the model. For the same reason as before, the $21$-fold cross validation method is used to test the models different $\lambda_{Elnet}$ and $\alpha$'s, and the best model with the lowest RMSE is chosen to fit the final Elastic Net Model. 
+When the model is fitted, several combinations of the $\lambda_{Elnet}$ and $\alpha$ are tried to fit the model. For the same reason as before, the $21$-fold cross validation method is used to test the models with different $\lambda_{Elnet}$ and $\alpha$'s, and the best model with the lowest RMSE is chosen to fit the final Elastic Net Model. 
 
 ```{r Elnetbetas}
 # Trainning the Elastic Net Model
@@ -327,17 +327,17 @@ knitr::kable(Mat, caption = "\\label{tab:Elnetbetas}Comparing the Coefficients: 
 
 #### Section 5.2.3: Estimates for the Elastic Net Model
 
-From the result, the optimal penalty having the lowest RMSE is with $\lambda_{Elnet}$ of $63.00427$ and $\alpha$ of $0.1$. Hence, The metric used can be written as in the Formula \ref{eq:ElnetMetricFinal}, which means the Elastic Net model used in this project is closer to the ridge regression since the penalty term of $\hat{\beta_{j}^{2}}$ contribute to the metric more. 
+From the result, the optimal penalty having the lowest RMSE uses $\lambda_{Elnet}$ of $63.00427$ and $\alpha$ of $0.1$. Hence, The metric used can be written as in the Formula \ref{eq:ElnetMetricFinal}, which means the Elastic Net model used in this project is closer to the ridge regression since $\hat{\beta_{j}^{2}}$ in the penalty term contribute to the metric more. 
 
 \begin{equation}\label{eq:ElnetMetricFinal}
 RSS + 63.00427 \sum_{j = 1}^{16}(0.9 \hat{\beta_{j}^{2}} + 0.1 |\hat{\beta_{j}}|)
 \end{equation}
 
-As shown in the Table \ref{tab:Elnetbetas}, the coefficients are shrank, the exploratory variables are selected from the full model. The line for predicting of the Elastic Net model is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. From the $21$-fold cross validation test on this model, the test RMSE for the final Elastic Net model is $1624.236$. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model is a model that has the least test RMSE compared to all other $3$ previous. Thus, we can tell the Elastic net model is the most accurate model among the $4$ models.
+As shown in the Table \ref{tab:Elnetbetas}, the coefficients are shrank, and the exploratory variable *"PhD"* is dropped from the full model. The line for predicting of the Elastic Net model is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. From the $21$-fold cross validation test on this model, the test RMSE for the final Elastic Net model is $1624.236$. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model is a model that has the least test RMSE compared to all other $3$ previous. Thus, we can tell the Elastic net model is the most accurate model among the $4$ models.
 
 \begin{table}[!htbp]
 \centering
-\caption{Models and their test RMSE}
+\caption{Models with their test RMSE}
 \label{tab:ModelsRMSE}
 \begin{tabular}{|c|c|}
 \hline
@@ -352,5 +352,5 @@ Elastic Net model & 1624.236           \\ \hline
 
 ## Section 6: Conclusion
 
-Comparing the four models built in this porject, I suggest the client to use the Elastic Net model, since as shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model has the least test RMSE, which implies that after doing the $21$-fold cross validation process, the Elastic Net model has the closest prediction to the real number of applications received by a university per year. Therefore, the model for predicting that I provide for the client is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. This prediction model uses $15$ variables in total and it has a test RMSE of only $1624.236$. The number of applications received by a univerty can be predict by plugging in the $15$ variables used in this model
+Comparing the four models built in this porject, I suggest the client to use the Elastic Net model. As shown in the Table \ref{tab:ModelsRMSE}, the Elastic Net model has the least test RMSE, which implies that after doing the $21$-fold cross validation process, the Elastic Net model has the closest prediction to the real number of applications received by a university per year. Therefore, the model for predicting that I provide for the client is $\widehat{Apps} = 2012.29 + 5.44 Top10perc - 0.18 Top10perc - 387.01 PrivateYes + 0.63 F.Undergrad - 0.11 P.Undergrad + 0.07 Outstate + 0.24 Room.Board - 0.13 Books - 0.11 Personal - 7.80 Terminal + 2.15 S.F.Ratio - 20.63 perc.alumni + 0.07 Expand + 18.19 Grad.Rate - 4584.77 Rate$. This prediction model uses $15$ variables in total and it has a test RMSE of only $1624.236$. The number of applications received by a univerty can be predicted by plugging in the $15$ variables used in this model
 
